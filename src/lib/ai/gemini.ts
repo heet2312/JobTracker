@@ -1,0 +1,37 @@
+import { GoogleGenerativeAI } from '@google/generative-ai'
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
+
+export const flashModel = genAI.getGenerativeModel({
+  model: process.env.GEMINI_FLASH_MODEL ?? 'gemini-2.5-flash-preview-05-20',
+  generationConfig: { responseMimeType: 'application/json' },
+})
+
+export const proModel = genAI.getGenerativeModel({
+  model: process.env.GEMINI_PRO_MODEL ?? 'gemini-2.5-pro-preview-05-06',
+  generationConfig: { responseMimeType: 'application/json' },
+})
+
+export async function generateWithRetry<T>(
+  fn: () => Promise<T>,
+  retries = 3,
+  delayMs = 1000
+): Promise<T> {
+  let lastError: unknown
+  for (let attempt = 0; attempt < retries; attempt++) {
+    try {
+      return await fn()
+    } catch (error) {
+      lastError = error
+      if (attempt < retries - 1) {
+        await new Promise((res) => setTimeout(res, delayMs * Math.pow(2, attempt)))
+      }
+    }
+  }
+  throw lastError
+}
+
+export function parseJsonResponse<T>(text: string): T {
+  const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+  return JSON.parse(cleaned) as T
+}
