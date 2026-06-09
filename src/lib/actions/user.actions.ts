@@ -141,12 +141,7 @@ export async function getUserSettings(): Promise<ActionResult<ISettings>> {
     const userId = await syncUser()
     const settings = await SettingsModel.findOne({ userId }).lean()
     if (!settings) return { success: false, error: 'Settings not found' }
-    const data = JSON.parse(JSON.stringify(settings)) as ISettings
-    // Mask API key — never expose the raw key to the client
-    if (data.aiApiKey) {
-      data.aiApiKey = '••••••••' + data.aiApiKey.slice(-4)
-    }
-    return { success: true, data }
+    return { success: true, data: JSON.parse(JSON.stringify(settings)) as ISettings }
   } catch (error) {
     return { success: false, error: String(error) }
   }
@@ -170,37 +165,22 @@ export async function updateUserSettings(data: Partial<ISettings>): Promise<Acti
 
 export async function updateAIProviderSettings(input: {
   provider: ISettings['aiProvider']
-  apiKey: string
   model: string
-}): Promise<ActionResult<{ provider: string; model: string; keyIsSet: boolean }>> {
+}): Promise<ActionResult<{ provider: string; model: string }>> {
   try {
     const { userId: clerkId } = await auth()
     if (!clerkId) return { success: false, error: 'Unauthorized' }
     const userId = await syncUser()
 
-    const update: Record<string, string> = {
-      aiProvider: input.provider,
-      aiModel: input.model,
-    }
+    await SettingsModel.findOneAndUpdate(
+      { userId },
+      { $set: { aiProvider: input.provider, aiModel: input.model } },
+      { upsert: true }
+    )
 
-    // Only update the API key if a new one was provided (not the masked placeholder)
-    if (input.apiKey && !input.apiKey.startsWith('••••')) {
-      update.aiApiKey = input.apiKey
-    } else if (input.apiKey === '') {
-      // Explicitly clearing the key
-      update.aiApiKey = ''
-    }
-
-    await SettingsModel.findOneAndUpdate({ userId }, { $set: update }, { upsert: true })
-
-    const saved = await SettingsModel.findOne({ userId }).lean()
     return {
       success: true,
-      data: {
-        provider: saved?.aiProvider ?? 'gemini',
-        model: saved?.aiModel ?? '',
-        keyIsSet: Boolean(saved?.aiApiKey),
-      },
+      data: { provider: input.provider, model: input.model },
     }
   } catch (error) {
     return { success: false, error: String(error) }

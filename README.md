@@ -6,18 +6,26 @@ Stop tracking applications in spreadsheets. AI Job Tracker brings together every
 
 ---
 
-## What It Does
+## Your API Key — Privacy First
 
-Most job seekers juggle 5+ tools: a spreadsheet for tracking, Google Docs for resumes, ChatGPT for cover letters, a notes app for interview prep, and their inbox for follow-ups. AI Job Tracker replaces all of them.
+AI Job Tracker ships with **zero AI credentials**. There is no `GEMINI_API_KEY` or any other AI key in the environment. You bring your own.
 
-You import a job once. Everything else — match analysis, optimized resume, cover letter, outreach messages, follow-up drafts, interview questions — is generated and stored automatically, tied to that job forever.
+Go to **Settings → AI Provider** and connect any of:
+
+| Provider | Models |
+|---|---|
+| Google Gemini | Gemini 2.5 Flash, Gemini 2.5 Pro |
+| OpenAI | GPT-4o Mini, GPT-4o |
+| Anthropic Claude | Claude Haiku 4.5, Claude Sonnet 4.6, Claude Opus 4.8 |
+
+**Your key is stored only in your browser's `localStorage`** — it is never written to our database, never logged, and never visible to us. When you trigger an AI action, the key travels directly from your browser to the server action, is used for that single call, and is immediately discarded. You stay in full control of your AI usage and costs.
 
 ---
 
 ## Features
 
 ### Import Any Job in Seconds
-Paste a job description, drop in a URL, or upload a PDF. Gemini AI extracts the title, company, skills, salary, location, seniority, tech stack, and every other detail automatically. No manual entry.
+Paste a job description, drop in a URL, or upload a PDF. AI extracts the title, company, skills, salary, location, seniority, tech stack, and every other detail automatically. No manual entry.
 
 ### Know Your Odds Before You Apply
 Get a match score across 5 dimensions — Skills, Experience, ATS compatibility, Keywords, and Overall fit — with a full skill gap breakdown and tailored suggestions to improve your application before you send it.
@@ -44,7 +52,82 @@ Move applications through 13 stages with drag-and-drop — from Saved and Intere
 A full activity feed shows every import, analysis, resume generation, cover letter, outreach message, interview prep, and stage change — grouped by date, with colored icons for instant scanning.
 
 ### Discover What to Apply For Next
-Describe your skills and target roles, and Gemini Pro surfaces job recommendations with match scores, salary estimates, missing skill gaps, and a LinkedIn search query — ready to act on immediately.
+Describe your skills and target roles, and AI surfaces job recommendations with match scores, salary estimates, missing skill gaps, and a search query — ready to act on immediately.
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Framework | Next.js 15 App Router (React 19) |
+| Language | TypeScript 5 (strict) |
+| Styling | Tailwind CSS v4 + shadcn/ui (New York) |
+| State | Zustand + TanStack Query v5 |
+| Database | MongoDB Atlas via Mongoose |
+| Auth | Clerk (Google OAuth + GitHub OAuth + Email) |
+| AI | Bring your own key — Gemini / OpenAI / Anthropic |
+| File Storage | UploadThing |
+| Image CDN | Cloudinary |
+| Charts | Recharts |
+| DnD | @dnd-kit |
+| Forms | React Hook Form + Zod |
+| Deployment | Vercel |
+
+---
+
+## Getting Started
+
+### 1. Clone and install
+
+```bash
+git clone <repo>
+cd ai-job-tracker
+npm install
+```
+
+### 2. Configure environment variables
+
+```bash
+cp .env.local.example .env.local
+```
+
+Fill in `.env.local`:
+
+```bash
+# Clerk
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
+CLERK_SECRET_KEY=
+CLERK_WEBHOOK_SECRET=
+
+# MongoDB
+MONGODB_URI=
+
+# UploadThing
+UPLOADTHING_TOKEN=
+
+# Cloudinary
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+
+# App
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
+
+> There are no AI-related env vars. Users supply their own keys in the app.
+
+### 3. Set up Clerk webhook
+
+In the Clerk dashboard, create a webhook pointing to `<your-url>/api/webhooks/clerk` and subscribe to `user.created` and `user.updated` events. Paste the signing secret into `CLERK_WEBHOOK_SECRET`.
+
+### 4. Run
+
+```bash
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000).
 
 ---
 
@@ -56,16 +139,9 @@ Describe your skills and target roles, and Gemini Pro surfaces job recommendatio
 
 ---
 
-## Powered By
-
-- **Google Gemini 2.5 Flash** — fast operations: job parsing, outreach, follow-ups
-- **Google Gemini 2.5 Pro** — deep work: match scoring, resume optimization, interview prep
-
----
-
 ## Coming Soon
 
-- Email delivery for notifications, follow-up reminders, and weekly digest (preferences can be saved in Settings now)
+- Email delivery for follow-up reminders and weekly digest (preferences can be saved in Settings now)
 - Chrome extension for one-click job import
 - LinkedIn profile import
 

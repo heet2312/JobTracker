@@ -101,31 +101,38 @@ export async function getJobById(jobId: string): Promise<ActionResult<IJob>> {
   }
 }
 
-export async function importJobFromUrl(url: string): Promise<ActionResult<ParsedJob>> {
+function aiError(error: unknown): string {
+  const msg = String(error)
+  if (msg.includes('AI_KEY_REQUIRED')) return 'No API key configured. Go to Settings → AI Provider to add your key.'
+  if (msg.includes('AI_MODEL_REQUIRED')) return 'No model selected. Go to Settings → AI Provider to choose a model.'
+  return msg
+}
+
+export async function importJobFromUrl(url: string, clientApiKey?: string): Promise<ActionResult<ParsedJob>> {
   try {
     const { userId: clerkId } = await auth()
     if (!clerkId) return { success: false, error: 'Unauthorized' }
     await connectDB()
     const userId = await syncUser()
-    const { fast } = await getUserAIClients(userId)
+    const { fast } = await getUserAIClients(userId, clientApiKey)
     const parsed = await parseJobFromUrl(url, fast)
     return { success: true, data: parsed }
   } catch (error) {
-    return { success: false, error: String(error) }
+    return { success: false, error: aiError(error) }
   }
 }
 
-export async function parseJobDescriptionAction(jd: string): Promise<ActionResult<ParsedJob>> {
+export async function parseJobDescriptionAction(jd: string, clientApiKey?: string): Promise<ActionResult<ParsedJob>> {
   try {
     const { userId: clerkId } = await auth()
     if (!clerkId) return { success: false, error: 'Unauthorized' }
     await connectDB()
     const userId = await syncUser()
-    const { fast } = await getUserAIClients(userId)
+    const { fast } = await getUserAIClients(userId, clientApiKey)
     const parsed = await parseJobDescription(jd, fast)
     return { success: true, data: parsed }
   } catch (error) {
-    return { success: false, error: String(error) }
+    return { success: false, error: aiError(error) }
   }
 }
 

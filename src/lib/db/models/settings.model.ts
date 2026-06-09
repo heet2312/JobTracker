@@ -9,7 +9,6 @@ export interface ISettingsDocument extends Document {
   defaultResumeId?: Types.ObjectId
   timezone: string
   aiProvider: 'gemini' | 'openai' | 'anthropic'
-  aiApiKey: string
   aiModel: string
   createdAt: Date
   updatedAt: Date
@@ -25,7 +24,6 @@ const settingsSchema = new Schema<ISettingsDocument>(
     defaultResumeId: { type: Schema.Types.ObjectId, ref: 'Resume' },
     timezone: { type: String, default: 'UTC' },
     aiProvider: { type: String, enum: ['gemini', 'openai', 'anthropic'], default: 'gemini' },
-    aiApiKey: { type: String, default: '' },
     aiModel: { type: String, default: '' },
   },
   { timestamps: true }

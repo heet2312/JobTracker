@@ -2,7 +2,6 @@ import { getUserSettings } from '@/lib/actions/user.actions'
 import { SettingsClient } from './_components/settings-client'
 import { AIProviderClient } from './_components/ai-provider-client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { currentUser } from '@clerk/nextjs/server'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -71,7 +70,6 @@ export default async function SettingsPage() {
       <AIProviderClient
         initialProvider={(settings?.aiProvider ?? 'gemini') as AIProvider}
         initialModel={settings?.aiModel ?? ''}
-        initialKeyIsSet={Boolean(settings?.aiApiKey)}
       />
 
       {/* Notifications — client component handles interactivity */}
@@ -81,30 +79,6 @@ export default async function SettingsPage() {
         initialWeeklyDigest={settings?.weeklyDigest ?? false}
       />
 
-      {/* AI Models */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">AI Models</CardTitle>
-          <CardDescription>Google Gemini models used for AI features</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium">Fast operations</p>
-              <p className="text-xs text-muted-foreground">Job parsing, outreach, follow-ups</p>
-            </div>
-            <Badge variant="secondary">Gemini 2.5 Flash</Badge>
-          </div>
-          <Separator />
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium">Deep analysis</p>
-              <p className="text-xs text-muted-foreground">Match scoring, resume optimization, interview prep</p>
-            </div>
-            <Badge variant="secondary">Gemini 2.5 Pro</Badge>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   )
 }

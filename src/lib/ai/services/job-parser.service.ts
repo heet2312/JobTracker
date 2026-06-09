@@ -1,16 +1,15 @@
-import { flashModel, generateWithRetry } from '../gemini'
+import { generateWithRetry } from '../gemini'
 import { buildJobParsePrompt } from '../prompts/job-parse.prompt'
 import type { AIGenerationClient } from '../ai-client'
 import type { ParsedJob } from '@/types'
 
 export async function parseJobDescription(
   description: string,
-  client?: AIGenerationClient
+  client: AIGenerationClient
 ): Promise<ParsedJob> {
-  const model = client ?? (flashModel as unknown as AIGenerationClient)
   return generateWithRetry(async () => {
     const prompt = buildJobParsePrompt(description)
-    const result = await model.generateContent(prompt)
+    const result = await client.generateContent(prompt)
     const text = result.response.text()
     return JSON.parse(text) as ParsedJob
   })
@@ -18,7 +17,7 @@ export async function parseJobDescription(
 
 export async function parseJobFromUrl(
   url: string,
-  client?: AIGenerationClient
+  client: AIGenerationClient
 ): Promise<ParsedJob> {
   const response = await fetch(url, {
     headers: { 'User-Agent': 'Mozilla/5.0 (compatible; JobTrackerBot/1.0)' },

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
-import { Eye, EyeOff, Cpu, CheckCircle2, AlertCircle } from 'lucide-react'
+import { Eye, EyeOff, Cpu, CheckCircle2, AlertCircle, ShieldCheck } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
@@ -11,32 +11,28 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { updateAIProviderSettings } from '@/lib/actions/user.actions'
 import { AI_PROVIDERS, type AIProvider } from '@/lib/constants/ai-models'
+import { useLocalApiKey } from '@/lib/hooks/use-api-key'
 
 interface AIProviderClientProps {
   initialProvider: AIProvider
   initialModel: string
-  initialKeyIsSet: boolean
 }
 
-export function AIProviderClient({
-  initialProvider,
-  initialModel,
-  initialKeyIsSet,
-}: AIProviderClientProps) {
+export function AIProviderClient({ initialProvider, initialModel }: AIProviderClientProps) {
   const [provider, setProvider] = useState<AIProvider>(initialProvider)
   const [model, setModel] = useState(initialModel)
-  const [apiKey, setApiKey] = useState('')
+  const [apiKeyInput, setApiKeyInput] = useState('')
   const [showKey, setShowKey] = useState(false)
-  const [keyIsSet, setKeyIsSet] = useState(initialKeyIsSet)
   const [isPending, startTransition] = useTransition()
   const [isDirty, setIsDirty] = useState(false)
+
+  const { isSet, saveKey, getKey } = useLocalApiKey()
 
   const currentProviderConfig = AI_PROVIDERS.find((p) => p.value === provider)
   const availableModels = currentProviderConfig?.models ?? []
 
   function handleProviderChange(newProvider: AIProvider) {
     setProvider(newProvider)
-    // Auto-select first model for this provider
     const firstModel = AI_PROVIDERS.find((p) => p.value === newProvider)?.models[0]?.value ?? ''
     setModel(firstModel)
     setIsDirty(true)
@@ -47,21 +43,17 @@ export function AIProviderClient({
     setIsDirty(true)
   }
 
-  function handleKeyChange(value: string) {
-    setApiKey(value)
-    setIsDirty(true)
-  }
-
   function handleSave() {
     startTransition(async () => {
-      const result = await updateAIProviderSettings({
-        provider,
-        apiKey,
-        model,
-      })
-      if (result.success && result.data) {
-        setKeyIsSet(result.data.keyIsSet)
-        setApiKey('')
+      // Save key to localStorage — never touches our server/DB
+      if (apiKeyInput) {
+        saveKey(apiKeyInput)
+      }
+
+      // Save provider + model to DB (not sensitive)
+      const result = await updateAIProviderSettings({ provider, model })
+      if (result.success) {
+        setApiKeyInput('')
         setIsDirty(false)
         toast.success('AI provider saved')
       } else {
@@ -71,21 +63,14 @@ export function AIProviderClient({
   }
 
   function handleClearKey() {
-    setApiKey('')
-    setKeyIsSet(false)
-    setIsDirty(true)
-    // Trigger save with empty key
-    startTransition(async () => {
-      const result = await updateAIProviderSettings({ provider, apiKey: '', model })
-      if (result.success) {
-        toast.success('API key cleared')
-        setIsDirty(false)
-      } else {
-        toast.error(result.error ?? 'Failed to clear key')
-        setKeyIsSet(true)
-      }
-    })
+    saveKey('')
+    setApiKeyInput('')
+    setIsDirty(false)
+    toast.success('API key cleared from your browser')
   }
+
+  // Current key for display (from localStorage) or what the user is typing
+  const displayKey = apiKeyInput || (isSet ? getKey() : '')
 
   return (
     <Card>
@@ -98,6 +83,14 @@ export function AIProviderClient({
           Choose which AI model powers your analysis, resumes, cover letters, and more.
           Leave blank to use the default Gemini configuration from environment variables.
         </CardDescription>
+        {/* Privacy notice */}
+        <div className="flex items-start gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-2.5 mt-1">
+          <ShieldCheck className="h-4 w-4 text-emerald-500 mt-0.5 shrink-0" />
+          <p className="text-xs text-emerald-600 dark:text-emerald-400 leading-relaxed">
+            Your API key is stored <strong>only in this browser</strong> — it never reaches our
+            servers or database. We have no technical ability to read or misuse it.
+          </p>
+        </div>
       </CardHeader>
       <CardContent className="space-y-5">
         {/* Provider tabs */}
@@ -164,19 +157,18 @@ export function AIProviderClient({
             <Label className="text-xs uppercase tracking-widest text-muted-foreground">
               API Key
             </Label>
-            {keyIsSet && (
+            {isSet && (
               <div className="flex items-center gap-2">
                 <Badge
                   variant="outline"
                   className="text-[10px] border-emerald-500/30 text-emerald-500 bg-emerald-500/10"
                 >
                   <CheckCircle2 className="h-2.5 w-2.5 mr-1" />
-                  Key saved
+                  Saved in browser
                 </Badge>
                 <button
                   type="button"
                   onClick={handleClearKey}
-                  disabled={isPending}
                   className="text-[10px] text-muted-foreground hover:text-destructive transition-colors"
                 >
                   Clear
@@ -187,13 +179,16 @@ export function AIProviderClient({
           <div className="relative">
             <Input
               type={showKey ? 'text' : 'password'}
-              value={apiKey}
-              onChange={(e) => handleKeyChange(e.target.value)}
+              value={showKey ? displayKey : apiKeyInput}
+              onChange={(e) => {
+                setApiKeyInput(e.target.value)
+                setIsDirty(true)
+              }}
               placeholder={
-                keyIsSet
+                isSet
                   ? 'Enter a new key to replace the saved one'
                   : provider === 'gemini'
-                  ? 'sk-... or AIza... (leave blank to use env var)'
+                  ? 'AIza... (leave blank to use env var)'
                   : provider === 'openai'
                   ? 'sk-...'
                   : 'sk-ant-...'
@@ -210,10 +205,10 @@ export function AIProviderClient({
               {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           </div>
-          {provider === 'gemini' && !keyIsSet && (
+          {provider === 'gemini' && !isSet && (
             <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
               <AlertCircle className="h-3 w-3" />
-              No key saved — using <code className="font-mono">GEMINI_API_KEY</code> from environment variables
+              No key saved — using <code className="font-mono">GEMINI_API_KEY</code> from environment
             </p>
           )}
         </div>

@@ -1,5 +1,4 @@
 import { SettingsModel } from '@/lib/db/models/settings.model'
-import { flashModel, proModel } from './gemini'
 import { createAIClient, type AIGenerationClient, type AIProvider } from './ai-client'
 import type { Types } from 'mongoose'
 
@@ -8,22 +7,29 @@ export interface ResolvedAIClients {
   deep: AIGenerationClient
 }
 
-export async function getUserAIClients(userId: Types.ObjectId): Promise<ResolvedAIClients> {
-  const settings = await SettingsModel.findOne({ userId }).lean()
+/**
+ * Resolves the AI client for a user using their own API key (from localStorage,
+ * passed by the calling client component). Provider and model are read from DB.
+ *
+ * Throws 'AI_KEY_REQUIRED' if no key is provided — actions catch this and
+ * return a helpful message directing the user to Settings.
+ */
+export async function getUserAIClients(
+  userId: Types.ObjectId,
+  clientApiKey?: string
+): Promise<ResolvedAIClients> {
+  if (!clientApiKey) {
+    throw new Error('AI_KEY_REQUIRED')
+  }
 
-  const provider = settings?.aiProvider as AIProvider | undefined
-  const apiKey = settings?.aiApiKey ?? ''
+  const settings = await SettingsModel.findOne({ userId }, 'aiProvider aiModel').lean()
+  const provider = (settings?.aiProvider ?? 'gemini') as AIProvider
   const model = settings?.aiModel ?? ''
 
-  if (apiKey && provider && model) {
-    // User has configured a custom provider — use same model for all operations
-    const client = await createAIClient(provider, apiKey, model)
-    return { fast: client, deep: client }
+  if (!model) {
+    throw new Error('AI_MODEL_REQUIRED')
   }
 
-  // Fall back to env-var Gemini (Flash for fast ops, Pro for deep analysis)
-  return {
-    fast: flashModel as unknown as AIGenerationClient,
-    deep: proModel as unknown as AIGenerationClient,
-  }
+  const client = await createAIClient(provider, clientApiKey, model)
+  return { fast: client, deep: client }
 }

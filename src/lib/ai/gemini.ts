@@ -1,17 +1,3 @@
-import { GoogleGenerativeAI } from '@google/generative-ai'
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
-
-export const flashModel = genAI.getGenerativeModel({
-  model: process.env.GEMINI_FLASH_MODEL ?? 'gemini-2.5-flash-preview-05-20',
-  generationConfig: { responseMimeType: 'application/json' },
-})
-
-export const proModel = genAI.getGenerativeModel({
-  model: process.env.GEMINI_PRO_MODEL ?? 'gemini-2.5-pro-preview-05-06',
-  generationConfig: { responseMimeType: 'application/json' },
-})
-
 export async function generateWithRetry<T>(
   fn: () => Promise<T>,
   retries = 3,

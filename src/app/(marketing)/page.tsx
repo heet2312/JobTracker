@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import {
-  Zap, Brain, BarChart3, Kanban, FileText, Mail, ArrowRight, CheckCircle, TrendingUp, Users, Target,
+  Zap, Brain, BarChart3, Kanban, FileText, Mail, ArrowRight, Target, ShieldCheck, KeyRound,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -13,7 +13,7 @@ const features = [
   {
     icon: FileText,
     title: 'Resume Optimizer',
-    description: 'Auto-tailor your resume for each role. Inject ATS keywords and quantify achievements with Gemini Pro.',
+    description: 'Auto-tailor your resume for each role. Inject ATS keywords and quantify achievements — powered by your AI model of choice.',
   },
   {
     icon: Kanban,
@@ -66,8 +66,8 @@ export default function LandingPage() {
       {/* Hero */}
       <section className="mx-auto max-w-4xl px-6 pt-24 pb-20 text-center">
         <div className="mb-4 inline-flex items-center gap-2 rounded-full border bg-card px-3 py-1 text-xs text-muted-foreground">
-          <span className="text-primary">✦</span>
-          Powered by Google Gemini 2.5
+          <KeyRound className="h-3 w-3 text-primary" />
+          Bring your own AI key — Gemini, OpenAI, or Claude
         </div>
         <h1 className="text-5xl md:text-6xl font-bold tracking-tight mb-6 bg-gradient-to-b from-foreground to-foreground/60 bg-clip-text text-transparent">
           The operating system<br />for your job search.
@@ -106,6 +106,21 @@ export default function LandingPage() {
           </div>
         </div>
       </div>
+
+      {/* Privacy / BYOK */}
+      <section className="mx-auto max-w-4xl px-6 py-16">
+        <div className="rounded-2xl border bg-card p-8 flex flex-col md:flex-row items-center gap-8">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+            <ShieldCheck className="h-7 w-7 text-primary" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold mb-2">Your API key never leaves your browser</h3>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              AI Job Tracker ships with <strong className="text-foreground">zero AI credentials</strong>. You connect your own key from Google Gemini, OpenAI, or Anthropic Claude in Settings. The key is stored only in your browser&apos;s localStorage — it is never sent to our database, never logged, and never visible to us. You stay in full control of your AI usage and costs.
+            </p>
+          </div>
+        </div>
+      </section>
 
       {/* Features */}
       <section id="features" className="mx-auto max-w-7xl px-6 py-24">

@@ -1,6 +1,13 @@
 'use server'
 
 import { auth } from '@clerk/nextjs/server'
+
+function aiError(error: unknown): string {
+  const msg = String(error)
+  if (msg.includes('AI_KEY_REQUIRED')) return 'No API key configured. Go to Settings → AI Provider to add your key.'
+  if (msg.includes('AI_MODEL_REQUIRED')) return 'No model selected. Go to Settings → AI Provider to choose a model.'
+  return msg
+}
 import { connectDB } from '@/lib/db/connect'
 import { JobModel } from '@/lib/db/models/job.model'
 import { ResumeModel } from '@/lib/db/models/resume.model'
@@ -30,7 +37,8 @@ import type {
 
 export async function analyzeJobMatch(
   jobId: string,
-  resumeId: string
+  resumeId: string,
+  clientApiKey?: string
 ): Promise<ActionResult<IAIAnalysis>> {
   try {
     const { userId: clerkId } = await auth()
@@ -40,7 +48,7 @@ export async function analyzeJobMatch(
     const [job, resume, { deep }] = await Promise.all([
       JobModel.findOne({ _id: jobId, userId }).lean(),
       ResumeModel.findOne({ _id: resumeId, userId }).lean(),
-      getUserAIClients(userId),
+      getUserAIClients(userId, clientApiKey),
     ])
     if (!job) return { success: false, error: 'Job not found' }
     if (!resume) return { success: false, error: 'Resume not found' }
@@ -60,13 +68,14 @@ export async function analyzeJobMatch(
     })
     return { success: true, data: JSON.parse(JSON.stringify(analysis)) as IAIAnalysis }
   } catch (error) {
-    return { success: false, error: String(error) }
+    return { success: false, error: aiError(error) }
   }
 }
 
 export async function generateOptimizedResume(
   jobId: string,
-  resumeId: string
+  resumeId: string,
+  clientApiKey?: string
 ): Promise<ActionResult<{ _id: string; fullText: string; changes: string[]; atsScore: number }>> {
   try {
     const { userId: clerkId } = await auth()
@@ -78,7 +87,7 @@ export async function generateOptimizedResume(
       ResumeModel.findOne({ _id: resumeId, userId }).lean(),
     ])
     if (!job || !resume) return { success: false, error: 'Job or resume not found' }
-    const { deep } = await getUserAIClients(userId)
+    const { deep } = await getUserAIClients(userId, clientApiKey)
     const optimized = await optimizeResume(job.rawDescription ?? job.title, resume.content, deep)
     const lastVersion = await ResumeVersionModel.findOne({ resumeId }).sort({ versionNumber: -1 }).lean()
     const versionNumber = (lastVersion?.versionNumber ?? 0) + 1
@@ -105,13 +114,14 @@ export async function generateOptimizedResume(
       },
     }
   } catch (error) {
-    return { success: false, error: String(error) }
+    return { success: false, error: aiError(error) }
   }
 }
 
 export async function generateCoverLetterAction(
   jobId: string,
-  tone: CoverLetterTone
+  tone: CoverLetterTone,
+  clientApiKey?: string
 ): Promise<ActionResult<ICoverLetter>> {
   try {
     const { userId: clerkId } = await auth()
@@ -123,7 +133,7 @@ export async function generateCoverLetterAction(
     const resume = await ResumeModel.findOne({ userId, isMaster: true }).lean()
       ?? await ResumeModel.findOne({ userId }).lean()
     if (!resume) return { success: false, error: 'No resume found. Please upload a resume first.' }
-    const { deep } = await getUserAIClients(userId)
+    const { deep } = await getUserAIClients(userId, clientApiKey)
     const generated = await generateCoverLetter(job.rawDescription ?? job.title, resume.content, tone, deep)
     const letter = await CoverLetterModel.create({
       userId,
@@ -139,12 +149,13 @@ export async function generateCoverLetterAction(
     await logActivity({ type: 'cover_letter_generated', title: `Cover letter for "${job.title}"`, jobId })
     return { success: true, data: JSON.parse(JSON.stringify(letter)) as ICoverLetter }
   } catch (error) {
-    return { success: false, error: String(error) }
+    return { success: false, error: aiError(error) }
   }
 }
 
 export async function generateOutreachAction(
-  jobId: string
+  jobId: string,
+  clientApiKey?: string
 ): Promise<ActionResult<IOutreachMessage[]>> {
   try {
     const { userId: clerkId } = await auth()
@@ -156,7 +167,7 @@ export async function generateOutreachAction(
     const resume = await ResumeModel.findOne({ userId, isMaster: true }).lean()
       ?? await ResumeModel.findOne({ userId }).lean()
     const summary = resume?.content.slice(0, 1000) ?? ''
-    const { fast } = await getUserAIClients(userId)
+    const { fast } = await getUserAIClients(userId, clientApiKey)
     const messages = await generateOutreachMessages(job.title, job.company, summary, fast)
     const types = [
       { type: 'recruiter-email' as const, data: messages.recruiterEmail },
@@ -180,12 +191,13 @@ export async function generateOutreachAction(
     await logActivity({ type: 'outreach_created', title: `Outreach messages for "${job.title}"`, jobId })
     return { success: true, data: JSON.parse(JSON.stringify(created)) as IOutreachMessage[] }
   } catch (error) {
-    return { success: false, error: String(error) }
+    return { success: false, error: aiError(error) }
   }
 }
 
 export async function generateInterviewPrepAction(
-  applicationId: string
+  applicationId: string,
+  clientApiKey?: string
 ): Promise<ActionResult<IStoredInterviewPrep>> {
   try {
     const { userId: clerkId } = await auth()
@@ -199,7 +211,7 @@ export async function generateInterviewPrepAction(
     const job = application.jobId as unknown as Record<string, unknown>
     const resume = await ResumeModel.findOne({ userId, isMaster: true }).lean()
       ?? await ResumeModel.findOne({ userId }).lean()
-    const { deep } = await getUserAIClients(userId)
+    const { deep } = await getUserAIClients(userId, clientApiKey)
     const prep = await generateInterviewPrep(
       (job?.rawDescription as string) ?? (job?.title as string) ?? '',
       resume?.content ?? '',
@@ -222,13 +234,14 @@ export async function generateInterviewPrepAction(
     await logActivity({ type: 'interview_scheduled', title: 'Interview prep generated', applicationId })
     return { success: true, data: JSON.parse(JSON.stringify(stored)) as IStoredInterviewPrep }
   } catch (error) {
-    return { success: false, error: String(error) }
+    return { success: false, error: aiError(error) }
   }
 }
 
 export async function generateFollowUpAction(
   applicationId: string,
-  type: FollowUpType
+  type: FollowUpType,
+  clientApiKey?: string
 ): Promise<ActionResult<IFollowUp>> {
   try {
     const { userId: clerkId } = await auth()
@@ -240,7 +253,7 @@ export async function generateFollowUpAction(
       .lean()
     if (!application) return { success: false, error: 'Application not found' }
     const job = application.jobId as unknown as Record<string, unknown>
-    const { fast } = await getUserAIClients(userId)
+    const { fast } = await getUserAIClients(userId, clientApiKey)
     const message = await generateFollowUpMessage(
       (job?.title as string) ?? '',
       (job?.company as string) ?? '',
@@ -261,7 +274,7 @@ export async function generateFollowUpAction(
     await logActivity({ type: 'followup_sent', title: 'Follow-up generated', applicationId })
     return { success: true, data: JSON.parse(JSON.stringify(followUp)) as IFollowUp }
   } catch (error) {
-    return { success: false, error: String(error) }
+    return { success: false, error: aiError(error) }
   }
 }
 
@@ -316,18 +329,21 @@ export async function getJobAIContent(jobId: string): Promise<ActionResult<JobAI
       },
     }
   } catch (error) {
-    return { success: false, error: String(error) }
+    return { success: false, error: aiError(error) }
   }
 }
 
-export async function discoverJobsAction(overrides?: Partial<{
-  targetRoles: string[]
-  skills: string[]
-  targetLocations: string[]
-  remotePreference: string
-  experienceLevel: string
-  industries: string[]
-}>): Promise<ActionResult<JobRecommendation[]>> {
+export async function discoverJobsAction(
+  overrides?: Partial<{
+    targetRoles: string[]
+    skills: string[]
+    targetLocations: string[]
+    remotePreference: string
+    experienceLevel: string
+    industries: string[]
+  }>,
+  clientApiKey?: string
+): Promise<ActionResult<JobRecommendation[]>> {
   try {
     const { userId: clerkId } = await auth()
     if (!clerkId) return { success: false, error: 'Unauthorized' }
@@ -335,7 +351,7 @@ export async function discoverJobsAction(overrides?: Partial<{
     const userId = await syncUser()
     const profile = await ProfileModel.findOne({ userId }).lean()
     if (!profile) return { success: false, error: 'Please complete your profile first.' }
-    const { deep } = await getUserAIClients(userId)
+    const { deep } = await getUserAIClients(userId, clientApiKey)
     const recommendations = await discoverJobs({
       targetRoles: overrides?.targetRoles ?? profile.targetRoles,
       skills: overrides?.skills ?? profile.skills,
@@ -348,6 +364,6 @@ export async function discoverJobsAction(overrides?: Partial<{
     }, deep)
     return { success: true, data: recommendations }
   } catch (error) {
-    return { success: false, error: String(error) }
+    return { success: false, error: aiError(error) }
   }
 }
