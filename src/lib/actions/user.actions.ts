@@ -1,6 +1,7 @@
 'use server'
 
 import { auth, currentUser } from '@clerk/nextjs/server'
+import { cache } from 'react'
 import { connectDB } from '@/lib/db/connect'
 import { UserModel } from '@/lib/db/models/user.model'
 import { ProfileModel } from '@/lib/db/models/profile.model'
@@ -9,15 +10,29 @@ import type { IUser, IProfile, ISettings, ActionResult } from '@/types'
 import type { Types } from 'mongoose'
 
 /**
- * Upserts the Clerk user into MongoDB and returns their Mongo _id.
- * Called at the start of every action instead of a plain findOne so that
- * local dev works without webhooks — the user is created on first request.
+ * Returns the MongoDB _id for the current Clerk user.
+ *
+ * Fast path (existing users): auth() reads the JWT locally (~1ms) + one indexed
+ * DB read. currentUser() — which makes an HTTP call to Clerk — is only called
+ * once per new user to populate their profile on first login.
+ *
+ * Wrapped with React.cache() so repeated calls within the same server render /
+ * action batch resolve from memory instead of hitting the DB again.
  */
-export async function syncUser(): Promise<Types.ObjectId> {
-  const clerkUser = await currentUser()
-  if (!clerkUser) throw new Error('Unauthorized')
+export const syncUser = cache(async (): Promise<Types.ObjectId> => {
+  // auth() reads the session JWT — no network call to Clerk
+  const { userId: clerkId } = await auth()
+  if (!clerkId) throw new Error('Unauthorized')
 
   await connectDB()
+
+  // Fast path: user already exists — just return their _id
+  const existing = await UserModel.findOne({ clerkId }, '_id').lean()
+  if (existing) return existing._id as Types.ObjectId
+
+  // Slow path (first login only): fetch profile from Clerk to seed the DB
+  const clerkUser = await currentUser()
+  if (!clerkUser) throw new Error('User not found in Clerk')
 
   const primaryEmail =
     clerkUser.emailAddresses.find((e) => e.id === clerkUser.primaryEmailAddressId)
@@ -26,14 +41,11 @@ export async function syncUser(): Promise<Types.ObjectId> {
     ''
 
   const user = await UserModel.findOneAndUpdate(
-    { clerkId: clerkUser.id },
+    { clerkId },
     {
-      $setOnInsert: {
-        onboardingComplete: false,
-        plan: 'free',
-      },
+      $setOnInsert: { onboardingComplete: false, plan: 'free' },
       $set: {
-        clerkId: clerkUser.id,
+        clerkId,
         email: primaryEmail,
         firstName: clerkUser.firstName ?? '',
         lastName: clerkUser.lastName ?? '',
@@ -43,7 +55,6 @@ export async function syncUser(): Promise<Types.ObjectId> {
     { upsert: true, new: true }
   )
 
-  // Ensure Profile and Settings exist (idempotent)
   await Promise.all([
     ProfileModel.findOneAndUpdate(
       { userId: user._id },
@@ -77,7 +88,7 @@ export async function syncUser(): Promise<Types.ObjectId> {
   ])
 
   return user._id as Types.ObjectId
-}
+})
 
 export async function getCurrentUser(): Promise<ActionResult<IUser>> {
   try {
@@ -130,7 +141,12 @@ export async function getUserSettings(): Promise<ActionResult<ISettings>> {
     const userId = await syncUser()
     const settings = await SettingsModel.findOne({ userId }).lean()
     if (!settings) return { success: false, error: 'Settings not found' }
-    return { success: true, data: JSON.parse(JSON.stringify(settings)) as ISettings }
+    const data = JSON.parse(JSON.stringify(settings)) as ISettings
+    // Mask API key — never expose the raw key to the client
+    if (data.aiApiKey) {
+      data.aiApiKey = '••••••••' + data.aiApiKey.slice(-4)
+    }
+    return { success: true, data }
   } catch (error) {
     return { success: false, error: String(error) }
   }
@@ -147,6 +163,45 @@ export async function updateUserSettings(data: Partial<ISettings>): Promise<Acti
       { new: true, upsert: true }
     ).lean()
     return { success: true, data: JSON.parse(JSON.stringify(settings)) as ISettings }
+  } catch (error) {
+    return { success: false, error: String(error) }
+  }
+}
+
+export async function updateAIProviderSettings(input: {
+  provider: ISettings['aiProvider']
+  apiKey: string
+  model: string
+}): Promise<ActionResult<{ provider: string; model: string; keyIsSet: boolean }>> {
+  try {
+    const { userId: clerkId } = await auth()
+    if (!clerkId) return { success: false, error: 'Unauthorized' }
+    const userId = await syncUser()
+
+    const update: Record<string, string> = {
+      aiProvider: input.provider,
+      aiModel: input.model,
+    }
+
+    // Only update the API key if a new one was provided (not the masked placeholder)
+    if (input.apiKey && !input.apiKey.startsWith('••••')) {
+      update.aiApiKey = input.apiKey
+    } else if (input.apiKey === '') {
+      // Explicitly clearing the key
+      update.aiApiKey = ''
+    }
+
+    await SettingsModel.findOneAndUpdate({ userId }, { $set: update }, { upsert: true })
+
+    const saved = await SettingsModel.findOne({ userId }).lean()
+    return {
+      success: true,
+      data: {
+        provider: saved?.aiProvider ?? 'gemini',
+        model: saved?.aiModel ?? '',
+        keyIsSet: Boolean(saved?.aiApiKey),
+      },
+    }
   } catch (error) {
     return { success: false, error: String(error) }
   }

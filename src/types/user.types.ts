@@ -52,6 +52,9 @@ export interface ISettings {
   theme: 'dark' | 'light' | 'system'
   defaultResumeId?: string
   timezone: string
+  aiProvider: 'gemini' | 'openai' | 'anthropic'
+  aiApiKey: string
+  aiModel: string
   createdAt: Date | string
   updatedAt: Date | string
 }

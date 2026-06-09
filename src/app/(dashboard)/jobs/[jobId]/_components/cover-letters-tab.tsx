@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
+import { FileDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -11,6 +12,7 @@ import { Badge } from '@/components/ui/badge'
 import { AIThinking } from '@/components/ai/ai-thinking'
 import { CopyButton } from '@/components/shared/copy-button'
 import { generateCoverLetterAction } from '@/lib/actions/ai.actions'
+import { usePDFDownload } from '@/lib/hooks/use-pdf-download'
 import type { IJob, ICoverLetter, CoverLetterTone } from '@/types'
 
 interface CoverLettersTabProps {
@@ -30,9 +32,15 @@ function genDate(date: Date | string) {
   return format(new Date(date), 'MMM d, yyyy \'at\' h:mm a')
 }
 
-function LetterCard({ letter }: { letter: ICoverLetter }) {
+function LetterCard({ letter, jobTitle }: { letter: ICoverLetter; jobTitle: string }) {
   const [expanded, setExpanded] = useState(false)
   const [content, setContent] = useState(letter.content)
+  const { downloadCoverLetterPDF, loading: pdfLoading } = usePDFDownload()
+
+  function handleDownload() {
+    const filename = `cover-letter-${letter.tone}-${jobTitle.toLowerCase().replace(/\s+/g, '-').slice(0, 30)}`
+    downloadCoverLetterPDF(letter.subject, content, filename, letter.tone, letter.generatedAt)
+  }
 
   return (
     <Card>
@@ -45,6 +53,16 @@ function LetterCard({ letter }: { letter: ICoverLetter }) {
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground">{genDate(letter.generatedAt)}</span>
             <CopyButton text={`Subject: ${letter.subject}\n\n${content}`} size="icon" />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={handleDownload}
+              disabled={pdfLoading}
+              title="Download PDF"
+            >
+              <FileDown className="h-3.5 w-3.5" />
+            </Button>
             <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => setExpanded(!expanded)}>
               {expanded ? 'Collapse' : 'Expand'}
             </Button>
@@ -115,7 +133,7 @@ export function CoverLettersTab({ job, existingLetters }: CoverLettersTabProps) 
         <div className="space-y-3">
           <p className="text-xs text-muted-foreground">{letters.length} cover letter{letters.length !== 1 ? 's' : ''} generated</p>
           {letters.map((letter) => (
-            <LetterCard key={letter._id} letter={letter} />
+            <LetterCard key={letter._id} letter={letter} jobTitle={job.title} />
           ))}
         </div>
       )}

@@ -5,6 +5,7 @@ import { connectDB } from '@/lib/db/connect'
 import { JobModel } from '@/lib/db/models/job.model'
 import { createJobSchema, updateJobSchema } from '@/lib/validations/job.schema'
 import { parseJobDescription, parseJobFromUrl } from '@/lib/ai/services/job-parser.service'
+import { getUserAIClients } from '@/lib/ai/get-user-ai-client'
 import { logActivity } from './activity.actions'
 import { syncUser } from './user.actions'
 import type { IJob, ParsedJob, JobFilters, ActionResult } from '@/types'
@@ -104,7 +105,10 @@ export async function importJobFromUrl(url: string): Promise<ActionResult<Parsed
   try {
     const { userId: clerkId } = await auth()
     if (!clerkId) return { success: false, error: 'Unauthorized' }
-    const parsed = await parseJobFromUrl(url)
+    await connectDB()
+    const userId = await syncUser()
+    const { fast } = await getUserAIClients(userId)
+    const parsed = await parseJobFromUrl(url, fast)
     return { success: true, data: parsed }
   } catch (error) {
     return { success: false, error: String(error) }
@@ -115,7 +119,10 @@ export async function parseJobDescriptionAction(jd: string): Promise<ActionResul
   try {
     const { userId: clerkId } = await auth()
     if (!clerkId) return { success: false, error: 'Unauthorized' }
-    const parsed = await parseJobDescription(jd)
+    await connectDB()
+    const userId = await syncUser()
+    const { fast } = await getUserAIClients(userId)
+    const parsed = await parseJobDescription(jd, fast)
     return { success: true, data: parsed }
   } catch (error) {
     return { success: false, error: String(error) }

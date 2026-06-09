@@ -1,10 +1,8 @@
 'use client'
 
-import { Bell } from 'lucide-react'
 import { Breadcrumb } from './breadcrumb'
 import { ThemeToggle } from '@/components/shared/theme-toggle'
-import { Button } from '@/components/ui/button'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { NotificationBell } from './notification-bell'
 import { UserButton } from '@clerk/nextjs'
 
 export function Topbar() {
@@ -15,18 +13,7 @@ export function Topbar() {
       </div>
       <div className="flex items-center gap-1">
         <ThemeToggle />
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" disabled className="opacity-40 cursor-not-allowed">
-                <Bell className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">
-              <p className="text-xs">Notifications — Coming soon</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <NotificationBell />
         <UserButton afterSignOutUrl="/" />
       </div>
     </header>

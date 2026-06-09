@@ -141,56 +141,124 @@ export async function getDashboardStats(): Promise<ActionResult<DashboardStats>>
     await connectDB()
     const userId = await syncUser()
 
-    const [totalApplications, activeApplications, allApplications, analyses] = await Promise.all([
-      ApplicationModel.countDocuments({ userId }),
-      ApplicationModel.countDocuments({ userId, status: 'active' }),
-      ApplicationModel.find({ userId }).lean(),
-      AIAnalysisModel.find({ userId }).lean(),
+    const eightWeeksAgo = subWeeks(new Date(), 8)
+
+    // Use aggregation to avoid fetching all documents into JS memory
+    const [stageCounts, avgScoreResult, weeklyAgg] = await Promise.all([
+      // Count per stage + total in one query
+      ApplicationModel.aggregate([
+        { $match: { userId } },
+        {
+          $group: {
+            _id: '$stage',
+            count: { $sum: 1 },
+            activeCount: { $sum: { $cond: [{ $eq: ['$status', 'active'] }, 1, 0] } },
+          },
+        },
+      ]),
+      // Average match score
+      AIAnalysisModel.aggregate([
+        { $match: { userId } },
+        { $group: { _id: null, avg: { $avg: '$overallScore' }, count: { $sum: 1 } } },
+      ]),
+      // Weekly application counts for the last 8 weeks
+      ApplicationModel.aggregate([
+        { $match: { userId, createdAt: { $gte: eightWeeksAgo } } },
+        {
+          $group: {
+            _id: {
+              year: { $isoWeekYear: '$createdAt' },
+              week: { $isoWeek: '$createdAt' },
+              stage: '$stage',
+            },
+            count: { $sum: 1 },
+            minDate: { $min: '$createdAt' },
+          },
+        },
+      ]),
     ])
 
-    const responded = allApplications.filter((a) =>
-      ['screening', 'interview_1', 'interview_2', 'final', 'offer', 'accepted', 'rejected'].includes(a.stage)
-    ).length
-    const interviewed = allApplications.filter((a) =>
-      ['interview_1', 'interview_2', 'final', 'offer', 'accepted'].includes(a.stage)
-    ).length
-    const offers = allApplications.filter((a) => ['offer', 'accepted'].includes(a.stage)).length
-    const rejected = allApplications.filter((a) => a.stage === 'rejected').length
+    // Build stage → count map
+    const stageMap: Record<string, number> = {}
+    let totalApplications = 0
+    let activeApplications = 0
+    for (const row of stageCounts) {
+      stageMap[row._id as string] = row.count as number
+      totalApplications += row.count as number
+      activeApplications += row.activeCount as number
+    }
+
+    const responded =
+      (stageMap['screening'] ?? 0) +
+      (stageMap['interview_1'] ?? 0) +
+      (stageMap['interview_2'] ?? 0) +
+      (stageMap['final'] ?? 0) +
+      (stageMap['offer'] ?? 0) +
+      (stageMap['accepted'] ?? 0) +
+      (stageMap['rejected'] ?? 0)
+    const interviewed =
+      (stageMap['interview_1'] ?? 0) +
+      (stageMap['interview_2'] ?? 0) +
+      (stageMap['final'] ?? 0) +
+      (stageMap['offer'] ?? 0) +
+      (stageMap['accepted'] ?? 0)
+    const offers = (stageMap['offer'] ?? 0) + (stageMap['accepted'] ?? 0)
+    const rejected = stageMap['rejected'] ?? 0
 
     const responseRate = totalApplications ? Math.round((responded / totalApplications) * 100) : 0
     const interviewRate = totalApplications ? Math.round((interviewed / totalApplications) * 100) : 0
     const offerRate = totalApplications ? Math.round((offers / totalApplications) * 100) : 0
     const rejectionRate = totalApplications ? Math.round((rejected / totalApplications) * 100) : 0
 
-    const avgMatchScore = analyses.length
-      ? Math.round(analyses.reduce((sum, a) => sum + (a.overallScore || 0), 0) / analyses.length)
+    const avgMatchScore = avgScoreResult[0]
+      ? Math.round(avgScoreResult[0].avg as number)
       : 0
+
+    // Build weekly buckets from aggregation result
+    const interviewStages = new Set(['interview_1', 'interview_2', 'final'])
+    const offerStages = new Set(['offer', 'accepted'])
 
     const weeklyData = Array.from({ length: 8 }, (_, i) => {
       const weekStart = startOfWeek(subWeeks(new Date(), 7 - i))
-      const weekEnd = new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000)
-      const weekApps = allApplications.filter((a) => {
-        const d = new Date(a.createdAt)
-        return d >= weekStart && d < weekEnd
-      })
+      const isoYear = weekStart.getFullYear()
+      // ISO week number
+      const jan4 = new Date(isoYear, 0, 4)
+      const isoWeek =
+        Math.ceil(
+          ((weekStart.getTime() - jan4.getTime()) / 86400000 +
+            jan4.getDay() +
+            1) /
+            7
+        )
+
+      const rows = weeklyAgg.filter(
+        (r) =>
+          (r._id as Record<string, number>).year === isoYear &&
+          (r._id as Record<string, number>).week === isoWeek
+      )
+
+      const applications = rows.reduce((s, r) => s + (r.count as number), 0)
+      const interviews = rows
+        .filter((r) => interviewStages.has((r._id as Record<string, string>).stage))
+        .reduce((s, r) => s + (r.count as number), 0)
+      const offersWeek = rows
+        .filter((r) => offerStages.has((r._id as Record<string, string>).stage))
+        .reduce((s, r) => s + (r.count as number), 0)
+
       return {
         week: format(weekStart, 'MMM d'),
-        applications: weekApps.length,
-        interviews: weekApps.filter((a) =>
-          ['interview_1', 'interview_2', 'final'].includes(a.stage)
-        ).length,
-        offers: weekApps.filter((a) => ['offer', 'accepted'].includes(a.stage)).length,
+        applications,
+        interviews,
+        offers: offersWeek,
       }
     })
 
     const funnelStages = ['applied', 'screening', 'interview_1', 'offer', 'accepted']
     const funnelData = funnelStages.map((stage) => ({
       stage,
-      count: allApplications.filter((a) => a.stage === stage).length,
+      count: stageMap[stage] ?? 0,
       percentage: totalApplications
-        ? Math.round(
-            (allApplications.filter((a) => a.stage === stage).length / totalApplications) * 100
-          )
+        ? Math.round(((stageMap[stage] ?? 0) / totalApplications) * 100)
         : 0,
     }))
 

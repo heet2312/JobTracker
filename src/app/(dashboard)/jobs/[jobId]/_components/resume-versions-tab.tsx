@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
+import { FileDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -10,6 +11,7 @@ import { AIThinking } from '@/components/ai/ai-thinking'
 import { CopyButton } from '@/components/shared/copy-button'
 import { generateOptimizedResume } from '@/lib/actions/ai.actions'
 import { useResumes } from '@/lib/hooks/use-resumes'
+import { usePDFDownload } from '@/lib/hooks/use-pdf-download'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { IJob, IResumeVersion } from '@/types'
 
@@ -22,8 +24,15 @@ function genDate(date: Date | string) {
   return format(new Date(date), 'MMM d, yyyy \'at\' h:mm a')
 }
 
-function VersionCard({ version }: { version: IResumeVersion }) {
+function VersionCard({ version, jobTitle }: { version: IResumeVersion; jobTitle: string }) {
   const [expanded, setExpanded] = useState(false)
+  const { downloadResumePDF, loading: pdfLoading } = usePDFDownload()
+
+  function handleDownload() {
+    const filename = `resume-v${version.versionNumber}-${jobTitle.toLowerCase().replace(/\s+/g, '-').slice(0, 30)}`
+    downloadResumePDF(version.fullText, filename, version.atsScore)
+  }
+
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -36,6 +45,16 @@ function VersionCard({ version }: { version: IResumeVersion }) {
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground">{genDate(version.createdAt)}</span>
             <CopyButton text={version.fullText} size="icon" />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={handleDownload}
+              disabled={pdfLoading}
+              title="Download PDF"
+            >
+              <FileDown className="h-3.5 w-3.5" />
+            </Button>
             <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => setExpanded(!expanded)}>
               {expanded ? 'Collapse' : 'Expand'}
             </Button>
@@ -131,7 +150,7 @@ export function ResumeVersionsTab({ job, existingVersions }: ResumeVersionsTabPr
         <div className="space-y-3">
           <p className="text-xs text-muted-foreground">{versions.length} version{versions.length !== 1 ? 's' : ''} generated</p>
           {versions.map((v) => (
-            <VersionCard key={v._id} version={v} />
+            <VersionCard key={v._id} version={v} jobTitle={job.title} />
           ))}
         </div>
       )}

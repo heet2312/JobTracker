@@ -19,6 +19,7 @@ import { generateOutreachMessages } from '@/lib/ai/services/outreach.service'
 import { generateInterviewPrep } from '@/lib/ai/services/interview-prep.service'
 import { generateFollowUpMessage } from '@/lib/ai/services/followup.service'
 import { discoverJobs } from '@/lib/ai/services/job-discovery.service'
+import { getUserAIClients } from '@/lib/ai/get-user-ai-client'
 import { logActivity } from './activity.actions'
 import { syncUser } from './user.actions'
 import { countWords } from '@/lib/utils/format'
@@ -36,13 +37,14 @@ export async function analyzeJobMatch(
     if (!clerkId) return { success: false, error: 'Unauthorized' }
     await connectDB()
     const userId = await syncUser()
-    const [job, resume] = await Promise.all([
+    const [job, resume, { deep }] = await Promise.all([
       JobModel.findOne({ _id: jobId, userId }).lean(),
       ResumeModel.findOne({ _id: resumeId, userId }).lean(),
+      getUserAIClients(userId),
     ])
     if (!job) return { success: false, error: 'Job not found' }
     if (!resume) return { success: false, error: 'Resume not found' }
-    const score = await scoreJobMatch(job.rawDescription ?? job.title, resume.content)
+    const score = await scoreJobMatch(job.rawDescription ?? job.title, resume.content, deep)
     const analysis = await AIAnalysisModel.create({
       userId,
       jobId,
@@ -76,7 +78,8 @@ export async function generateOptimizedResume(
       ResumeModel.findOne({ _id: resumeId, userId }).lean(),
     ])
     if (!job || !resume) return { success: false, error: 'Job or resume not found' }
-    const optimized = await optimizeResume(job.rawDescription ?? job.title, resume.content)
+    const { deep } = await getUserAIClients(userId)
+    const optimized = await optimizeResume(job.rawDescription ?? job.title, resume.content, deep)
     const lastVersion = await ResumeVersionModel.findOne({ resumeId }).sort({ versionNumber: -1 }).lean()
     const versionNumber = (lastVersion?.versionNumber ?? 0) + 1
     const version = await ResumeVersionModel.create({
@@ -120,7 +123,8 @@ export async function generateCoverLetterAction(
     const resume = await ResumeModel.findOne({ userId, isMaster: true }).lean()
       ?? await ResumeModel.findOne({ userId }).lean()
     if (!resume) return { success: false, error: 'No resume found. Please upload a resume first.' }
-    const generated = await generateCoverLetter(job.rawDescription ?? job.title, resume.content, tone)
+    const { deep } = await getUserAIClients(userId)
+    const generated = await generateCoverLetter(job.rawDescription ?? job.title, resume.content, tone, deep)
     const letter = await CoverLetterModel.create({
       userId,
       jobId,
@@ -152,7 +156,8 @@ export async function generateOutreachAction(
     const resume = await ResumeModel.findOne({ userId, isMaster: true }).lean()
       ?? await ResumeModel.findOne({ userId }).lean()
     const summary = resume?.content.slice(0, 1000) ?? ''
-    const messages = await generateOutreachMessages(job.title, job.company, summary)
+    const { fast } = await getUserAIClients(userId)
+    const messages = await generateOutreachMessages(job.title, job.company, summary, fast)
     const types = [
       { type: 'recruiter-email' as const, data: messages.recruiterEmail },
       { type: 'hiring-manager-email' as const, data: messages.hiringManagerEmail },
@@ -194,10 +199,12 @@ export async function generateInterviewPrepAction(
     const job = application.jobId as unknown as Record<string, unknown>
     const resume = await ResumeModel.findOne({ userId, isMaster: true }).lean()
       ?? await ResumeModel.findOne({ userId }).lean()
+    const { deep } = await getUserAIClients(userId)
     const prep = await generateInterviewPrep(
       (job?.rawDescription as string) ?? (job?.title as string) ?? '',
       resume?.content ?? '',
-      (job?.company as string) ?? ''
+      (job?.company as string) ?? '',
+      deep
     )
     const stored = await InterviewRoundModel.create({
       userId,
@@ -233,11 +240,14 @@ export async function generateFollowUpAction(
       .lean()
     if (!application) return { success: false, error: 'Application not found' }
     const job = application.jobId as unknown as Record<string, unknown>
+    const { fast } = await getUserAIClients(userId)
     const message = await generateFollowUpMessage(
       (job?.title as string) ?? '',
       (job?.company as string) ?? '',
       application.contactName ?? '',
-      type
+      type,
+      undefined,
+      fast
     )
     const followUp = await FollowUpModel.create({
       userId,
@@ -325,6 +335,7 @@ export async function discoverJobsAction(overrides?: Partial<{
     const userId = await syncUser()
     const profile = await ProfileModel.findOne({ userId }).lean()
     if (!profile) return { success: false, error: 'Please complete your profile first.' }
+    const { deep } = await getUserAIClients(userId)
     const recommendations = await discoverJobs({
       targetRoles: overrides?.targetRoles ?? profile.targetRoles,
       skills: overrides?.skills ?? profile.skills,
@@ -334,7 +345,7 @@ export async function discoverJobsAction(overrides?: Partial<{
       industries: overrides?.industries ?? profile.industries,
       targetSalaryMin: profile.targetSalaryMin,
       targetSalaryMax: profile.targetSalaryMax,
-    })
+    }, deep)
     return { success: true, data: recommendations }
   } catch (error) {
     return { success: false, error: String(error) }
