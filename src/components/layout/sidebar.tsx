@@ -18,7 +18,7 @@ export function Sidebar() {
   const { setOpen } = useCommandPalette()
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-30 flex w-60 flex-col border-r bg-card">
+    <aside data-tour="sidebar" className="fixed inset-y-0 left-0 z-30 flex w-60 flex-col border-r bg-card">
       {/* Logo */}
       <div className="flex h-14 items-center gap-2 px-4 border-b">
         <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary">

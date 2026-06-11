@@ -163,6 +163,19 @@ export async function updateUserSettings(data: Partial<ISettings>): Promise<Acti
   }
 }
 
+export async function completeOnboardingAction(): Promise<ActionResult<void>> {
+  try {
+    const { userId: clerkId } = await auth()
+    if (!clerkId) return { success: false, error: 'Unauthorized' }
+    await connectDB()
+    const userId = await syncUser()
+    await UserModel.findByIdAndUpdate(userId, { onboardingComplete: true })
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: String(error) }
+  }
+}
+
 export async function updateAIProviderSettings(input: {
   provider: ISettings['aiProvider']
   model: string

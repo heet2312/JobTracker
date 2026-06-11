@@ -117,7 +117,7 @@ export function ImportTabs() {
   }
 
   return (
-    <div className="max-w-2xl">
+    <div data-tour="import-tabs" className="max-w-2xl">
       <Tabs defaultValue="paste">
         <TabsList className="mb-6">
           <TabsTrigger value="paste">Paste JD</TabsTrigger>

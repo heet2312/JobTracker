@@ -33,7 +33,7 @@ async function DashboardContent() {
       </div>
 
       {/* Row 1: 4 stat cards */}
-      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+      <div data-tour="stat-cards" className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         <StatCard label="Total Applications" value={stats.totalApplications} />
         <StatCard label="Active Applications" value={stats.activeApplications} />
         <StatCard

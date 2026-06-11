@@ -50,6 +50,7 @@
     "clsx": "^2",
     "cmdk": "^1",
     "date-fns": "^4",
+    "driver.js": "^1.4.0",
     "lucide-react": "^0.469",
     "mongoose": "^8",
     "next": "15.5.19",

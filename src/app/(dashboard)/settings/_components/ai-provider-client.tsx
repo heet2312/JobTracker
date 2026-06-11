@@ -73,7 +73,7 @@ export function AIProviderClient({ initialProvider, initialModel }: AIProviderCl
   const displayKey = apiKeyInput || (isSet ? getKey() : '')
 
   return (
-    <Card>
+    <Card data-tour="ai-provider">
       <CardHeader>
         <div className="flex items-center gap-2">
           <Cpu className="h-4 w-4 text-primary" />

@@ -2,6 +2,7 @@ import { Sidebar } from '@/components/layout/sidebar'
 import { Topbar } from '@/components/layout/topbar'
 import { CommandPalette } from '@/components/layout/command-palette'
 import { KeyboardShortcutsProvider } from '@/components/layout/keyboard-shortcuts-provider'
+import { PageTour } from '@/components/shared/page-tour'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -14,6 +15,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       </div>
       <CommandPalette />
+      <PageTour />
     </KeyboardShortcutsProvider>
   )
 }

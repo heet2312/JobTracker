@@ -36,7 +36,7 @@ export function KanbanBoard() {
       onDragStart={(e: DragStartEvent) => handleDragStart(String(e.active.id))}
       onDragEnd={handleDragEnd}
     >
-      <ScrollArea className="w-full">
+      <ScrollArea data-tour="kanban-board" className="w-full">
         <div className="flex gap-3 pb-4 min-w-max">
           {KANBAN_STAGES.map((stage) => (
             <KanbanColumn

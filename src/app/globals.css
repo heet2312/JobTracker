@@ -73,6 +73,125 @@
   }
 }
 
+/* ── Driver.js tour theme ───────────────────────────────────────────────── */
+.driver-popover {
+  background-color: hsl(var(--card)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+  border-radius: 12px !important;
+  color: hsl(var(--foreground)) !important;
+  box-shadow: 0 20px 60px -12px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255,255,255,0.04) !important;
+  padding: 18px !important;
+  min-width: 280px !important;
+  max-width: 320px !important;
+  font-family: inherit !important;
+}
+
+.driver-popover-title {
+  color: hsl(var(--foreground)) !important;
+  font-size: 0.9rem !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em !important;
+  line-height: 1.4 !important;
+  padding: 0 !important;
+  margin-bottom: 6px !important;
+}
+
+.driver-popover-description {
+  color: hsl(var(--muted-foreground)) !important;
+  font-size: 0.8125rem !important;
+  line-height: 1.55 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.driver-popover-description strong {
+  color: hsl(var(--foreground)) !important;
+  font-weight: 600 !important;
+}
+
+.tour-step-counter {
+  margin-top: 10px !important;
+  padding-top: 8px !important;
+  border-top: 1px solid hsl(var(--border)) !important;
+  font-size: 0.7rem !important;
+  color: hsl(var(--muted-foreground)) !important;
+  text-align: right !important;
+  letter-spacing: 0.04em !important;
+}
+
+.driver-popover-footer {
+  margin-top: 14px !important;
+  gap: 6px !important;
+  padding: 0 !important;
+}
+
+.driver-popover-prev-btn,
+.driver-popover-next-btn,
+.driver-popover-done-btn {
+  border-radius: 7px !important;
+  font-size: 0.8125rem !important;
+  font-weight: 500 !important;
+  padding: 6px 14px !important;
+  cursor: pointer !important;
+  transition: opacity 0.15s ease !important;
+  text-shadow: none !important;
+  font-family: inherit !important;
+  line-height: 1.4 !important;
+}
+
+.driver-popover-next-btn,
+.driver-popover-done-btn {
+  background-color: hsl(var(--primary)) !important;
+  color: hsl(var(--primary-foreground)) !important;
+  border: none !important;
+}
+
+.driver-popover-next-btn:hover,
+.driver-popover-done-btn:hover {
+  opacity: 0.88 !important;
+}
+
+.driver-popover-prev-btn {
+  background-color: hsl(var(--secondary)) !important;
+  color: hsl(var(--secondary-foreground)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+}
+
+.driver-popover-prev-btn:hover {
+  background-color: hsl(var(--accent)) !important;
+}
+
+.driver-popover-close-btn {
+  color: hsl(var(--muted-foreground)) !important;
+  font-size: 18px !important;
+  font-weight: 300 !important;
+  line-height: 1 !important;
+  width: 20px !important;
+  height: 20px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 4px !important;
+}
+
+.driver-popover-close-btn:hover {
+  color: hsl(var(--foreground)) !important;
+  background-color: hsl(var(--accent)) !important;
+}
+
+/* Popover arrow — match card background */
+.driver-popover-arrow-side-left .driver-popover-arrow  { border-right-color: hsl(var(--card)) !important; }
+.driver-popover-arrow-side-right .driver-popover-arrow { border-left-color: hsl(var(--card)) !important; }
+.driver-popover-arrow-side-top .driver-popover-arrow   { border-bottom-color: hsl(var(--card)) !important; }
+.driver-popover-arrow-side-bottom .driver-popover-arrow{ border-top-color: hsl(var(--card)) !important; }
+
+/* Stage highlight ring */
+#driver-highlighted-element-stage {
+  border-radius: 8px !important;
+  outline: 2px solid hsl(var(--primary)) !important;
+  outline-offset: 2px !important;
+}
+
 @layer utilities {
   .shimmer {
     background: linear-gradient(

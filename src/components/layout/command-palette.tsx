@@ -5,6 +5,8 @@ import { Briefcase, FileText, Kanban, LayoutDashboard, Plus } from 'lucide-react
 import {
   CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator,
 } from '@/components/ui/command'
+import { DialogTitle } from '@/components/ui/dialog'
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 import { useCommandPalette } from '@/lib/hooks/use-command-palette'
 import { ROUTES } from '@/lib/constants/routes'
 
@@ -19,6 +21,9 @@ export function CommandPalette() {
 
   return (
     <CommandDialog open={open} onOpenChange={setOpen}>
+      <VisuallyHidden>
+        <DialogTitle>Command Palette</DialogTitle>
+      </VisuallyHidden>
       <CommandInput placeholder="Search jobs, navigate, or run actions..." />
       <CommandList>
         <CommandEmpty>No results found.</CommandEmpty>

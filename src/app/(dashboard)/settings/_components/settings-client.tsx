@@ -7,6 +7,9 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { PlayCircle } from 'lucide-react'
+import { useUser } from '@clerk/nextjs'
 import { updateUserSettings } from '@/lib/actions/user.actions'
 
 interface SettingsClientProps {
@@ -28,10 +31,16 @@ export function SettingsClient({
   initialFollowUpReminders,
   initialWeeklyDigest,
 }: SettingsClientProps) {
+  const { user } = useUser()
   const [emailNotifications, setEmailNotifications] = useState(initialEmailNotifications)
   const [followUpReminders, setFollowUpReminders] = useState(initialFollowUpReminders)
   const [weeklyDigest, setWeeklyDigest] = useState(initialWeeklyDigest)
   const [isPending, startTransition] = useTransition()
+
+  function replayTour() {
+    if (user) localStorage.removeItem(`tour_done_${user.id}`)
+    window.dispatchEvent(new Event('tour:replay'))
+  }
 
   function handleToggle(
     key: 'emailNotifications' | 'followUpReminders' | 'weeklyDigest',
@@ -57,6 +66,19 @@ export function SettingsClient({
   }
 
   return (
+    <>
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Onboarding</CardTitle>
+        <CardDescription>Replay the getting-started tour at any time.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Button variant="outline" size="sm" className="gap-2" onClick={replayTour}>
+          <PlayCircle className="h-4 w-4" />
+          Replay tour
+        </Button>
+      </CardContent>
+    </Card>
     <Card>
       <CardHeader>
         <CardTitle className="text-base">Notifications</CardTitle>
@@ -111,5 +133,6 @@ export function SettingsClient({
         </div>
       </CardContent>
     </Card>
+    </>
   )
 }

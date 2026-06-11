@@ -25,7 +25,7 @@ export default function ResumesPage() {
         <p className="text-sm text-muted-foreground mt-1">Manage your resume library and versions</p>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
+        <Card data-tour="resume-upload">
           <CardHeader>
             <CardTitle className="text-base">Add Resume</CardTitle>
           </CardHeader>
