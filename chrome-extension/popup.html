@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Job Tracker</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 320px;
+      min-height: 160px;
+      background: #0a0a0a;
+      color: #e5e5e5;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 16px;
+      border-bottom: 1px solid #1e1e1e;
+    }
+
+    .logo-dot {
+      width: 24px;
+      height: 24px;
+      background: #3b82f6;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .logo-text {
+      font-weight: 600;
+      font-size: 13px;
+      color: #f0f0f0;
+      letter-spacing: -0.2px;
+    }
+
+    .body {
+      padding: 16px;
+    }
+
+    /* Job detected state */
+    .job-detected {
+      display: none;
+    }
+
+    .job-title {
+      font-weight: 600;
+      font-size: 14px;
+      color: #f0f0f0;
+      line-height: 1.3;
+      margin-bottom: 4px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .job-url {
+      font-size: 11px;
+      color: #52525b;
+      margin-bottom: 14px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      width: 100%;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+
+    .btn:hover { opacity: 0.85; }
+    .btn:active { opacity: 0.7; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-primary {
+      background: #3b82f6;
+      color: #fff;
+    }
+
+    .btn-secondary {
+      background: #1a1a1a;
+      color: #a1a1aa;
+      border: 1px solid #2e2e2e;
+      margin-top: 8px;
+    }
+
+    /* Not a job page state */
+    .not-job-page {
+      display: none;
+    }
+
+    .hint {
+      color: #52525b;
+      font-size: 12px;
+      line-height: 1.5;
+      margin-bottom: 12px;
+    }
+
+    .site-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-bottom: 14px;
+    }
+
+    .site-chip {
+      background: #161616;
+      border: 1px solid #2e2e2e;
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-size: 11px;
+      color: #71717a;
+    }
+
+    /* Settings row */
+    .settings-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0 0;
+      border-top: 1px solid #1a1a1a;
+      margin-top: 12px;
+    }
+
+    .settings-label {
+      font-size: 11px;
+      color: #52525b;
+    }
+
+    .settings-input {
+      background: #161616;
+      border: 1px solid #2e2e2e;
+      border-radius: 5px;
+      color: #a1a1aa;
+      font-size: 11px;
+      padding: 3px 8px;
+      width: 160px;
+      outline: none;
+    }
+
+    .settings-input:focus {
+      border-color: #3b82f6;
+      color: #e5e5e5;
+    }
+
+    .success-banner {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      background: #052e16;
+      border: 1px solid #14532d40;
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+      font-size: 12px;
+      color: #4ade80;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo-dot">A</div>
+    <span class="logo-text">AI Job Tracker</span>
+  </div>
+
+  <div class="body">
+    <div id="successBanner" class="success-banner">
+      <span>✓</span>
+      <span>Opening import page…</span>
+    </div>
+
+    <!-- Job detected -->
+    <div id="jobDetected" class="job-detected">
+      <div id="pageTitle" class="job-title"></div>
+      <div id="pageUrl" class="job-url"></div>
+      <button id="importBtn" class="btn btn-primary">
+        <span>↑</span>
+        Import this job
+      </button>
+      <button id="openAppBtn" class="btn btn-secondary">
+        Open AI Job Tracker
+      </button>
+    </div>
+
+    <!-- Not a job page -->
+    <div id="notJobPage" class="not-job-page">
+      <p class="hint">Navigate to a job posting to import it with one click.</p>
+      <div class="site-list">
+        <span class="site-chip">LinkedIn</span>
+        <span class="site-chip">Indeed</span>
+        <span class="site-chip">Glassdoor</span>
+        <span class="site-chip">Greenhouse</span>
+        <span class="site-chip">Lever</span>
+        <span class="site-chip">Workday</span>
+        <span class="site-chip">Ashby</span>
+        <span class="site-chip">SmartRecruiters</span>
+      </div>
+      <button id="openAppBtn2" class="btn btn-secondary">
+        Open AI Job Tracker
+      </button>
+    </div>
+
+    <!-- App URL setting -->
+    <div class="settings-row">
+      <span class="settings-label">App URL</span>
+      <input
+        id="appUrlInput"
+        class="settings-input"
+        type="text"
+        placeholder="https://your-app.com"
+        spellcheck="false"
+      />
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

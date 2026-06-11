@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { AIThinking } from '@/components/ai/ai-thinking'
 import { CopyButton } from '@/components/shared/copy-button'
 import { generateFollowUpAction } from '@/lib/actions/ai.actions'
+import { useLocalApiKey } from '@/lib/hooks/use-api-key'
 import type { IJob, IFollowUp, FollowUpType } from '@/types'
 
 interface FollowupsTabProps {
@@ -42,6 +43,7 @@ export function FollowupsTab({ job, applicationId, existingFollowUps }: Followup
   const [type, setType] = useState<FollowUpType>('7-day')
   const [loading, setLoading] = useState(false)
   const [followUps, setFollowUps] = useState<IFollowUp[]>(existingFollowUps)
+  const { getKey } = useLocalApiKey()
 
   async function handleGenerate() {
     if (!applicationId) {
@@ -50,7 +52,7 @@ export function FollowupsTab({ job, applicationId, existingFollowUps }: Followup
     }
     setLoading(true)
     try {
-      const result = await generateFollowUpAction(applicationId, type)
+      const result = await generateFollowUpAction(applicationId, type, getKey() || undefined)
       if (result.success && result.data) {
         setFollowUps((prev) => [result.data!, ...prev])
         toast.success('Follow-up generated!')

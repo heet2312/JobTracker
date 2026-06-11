@@ -1,6 +1,13 @@
 import { ImportTabs } from '@/components/import/import-tabs'
 
-export default function ImportPage() {
+interface ImportPageProps {
+  searchParams: Promise<{ url?: string }>
+}
+
+export default async function ImportPage({ searchParams }: ImportPageProps) {
+  const { url } = await searchParams
+  const prefillUrl = typeof url === 'string' && url.startsWith('http') ? url : undefined
+
   return (
     <div className="space-y-6">
       <div>
@@ -9,7 +16,7 @@ export default function ImportPage() {
           Paste a job description, import from URL, or upload a PDF
         </p>
       </div>
-      <ImportTabs />
+      <ImportTabs prefillUrl={prefillUrl} />
     </div>
   )
 }

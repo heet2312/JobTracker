@@ -15,7 +15,11 @@ import { PdfUploadForm } from './pdf-upload-form'
 import { createJob } from '@/lib/actions/job.actions'
 import type { ParsedJob } from '@/types'
 
-export function ImportTabs() {
+interface ImportTabsProps {
+  prefillUrl?: string
+}
+
+export function ImportTabs({ prefillUrl }: ImportTabsProps) {
   const router = useRouter()
   const [parsed, setParsed] = useState<ParsedJob | null>(null)
   const [rawText, setRawText] = useState('')
@@ -118,7 +122,7 @@ export function ImportTabs() {
 
   return (
     <div data-tour="import-tabs" className="max-w-2xl">
-      <Tabs defaultValue="paste">
+      <Tabs defaultValue={prefillUrl ? 'url' : 'paste'}>
         <TabsList className="mb-6">
           <TabsTrigger value="paste">Paste JD</TabsTrigger>
           <TabsTrigger value="url">Job URL</TabsTrigger>
@@ -128,10 +132,13 @@ export function ImportTabs() {
           <PasteJDForm onParsed={(job, raw) => handleParsed(job, raw, 'paste')} />
         </TabsContent>
         <TabsContent value="url">
-          <UrlImportForm onParsed={(job, url) => handleParsed(job, url, 'url')} />
+          <UrlImportForm
+            onParsed={(job, url) => handleParsed(job, url, 'url')}
+            prefillUrl={prefillUrl}
+          />
         </TabsContent>
         <TabsContent value="pdf">
-          <PdfUploadForm />
+          <PdfUploadForm onParsed={(job, raw) => handleParsed(job, raw, 'pdf')} />
         </TabsContent>
       </Tabs>
     </div>

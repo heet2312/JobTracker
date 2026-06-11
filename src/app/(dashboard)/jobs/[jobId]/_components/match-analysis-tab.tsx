@@ -13,6 +13,7 @@ import { ScoreBreakdown } from '@/components/ai/score-breakdown'
 import { AIThinking } from '@/components/ai/ai-thinking'
 import { analyzeJobMatch } from '@/lib/actions/ai.actions'
 import { useResumes } from '@/lib/hooks/use-resumes'
+import { useLocalApiKey } from '@/lib/hooks/use-api-key'
 import type { IJob, IAIAnalysis } from '@/types'
 
 interface MatchAnalysisTabProps {
@@ -75,6 +76,7 @@ function AnalysisView({ analysis }: { analysis: IAIAnalysis }) {
 
 export function MatchAnalysisTab({ job, existingAnalyses }: MatchAnalysisTabProps) {
   const { data: resumes } = useResumes()
+  const { getKey } = useLocalApiKey()
   const [selectedResumeId, setSelectedResumeId] = useState('')
   const [analyses, setAnalyses] = useState<IAIAnalysis[]>(existingAnalyses)
   const [activeIdx, setActiveIdx] = useState(0)
@@ -85,7 +87,7 @@ export function MatchAnalysisTab({ job, existingAnalyses }: MatchAnalysisTabProp
     if (!selectedResumeId) { toast.error('Please select a resume'); return }
     setLoading(true)
     try {
-      const result = await analyzeJobMatch(job._id, selectedResumeId)
+      const result = await analyzeJobMatch(job._id, selectedResumeId, getKey() || undefined)
       if (result.success && result.data) {
         const updated = [result.data, ...analyses]
         setAnalyses(updated)

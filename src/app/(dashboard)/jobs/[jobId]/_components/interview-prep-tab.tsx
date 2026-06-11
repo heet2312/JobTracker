@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { AIThinking } from '@/components/ai/ai-thinking'
 import { generateInterviewPrepAction } from '@/lib/actions/ai.actions'
+import { useLocalApiKey } from '@/lib/hooks/use-api-key'
 import type { IJob, IStoredInterviewPrep, Question } from '@/types'
 
 interface InterviewPrepTabProps {
@@ -119,6 +120,7 @@ function PrepView({ prep }: { prep: IStoredInterviewPrep }) {
 export function InterviewPrepTab({ job, applicationId, existingPrep }: InterviewPrepTabProps) {
   const [loading, setLoading] = useState(false)
   const [prep, setPrep] = useState<IStoredInterviewPrep | null>(existingPrep)
+  const { getKey } = useLocalApiKey()
 
   async function handleGenerate() {
     if (!applicationId) {
@@ -127,7 +129,7 @@ export function InterviewPrepTab({ job, applicationId, existingPrep }: Interview
     }
     setLoading(true)
     try {
-      const result = await generateInterviewPrepAction(applicationId)
+      const result = await generateInterviewPrepAction(applicationId, getKey() || undefined)
       if (result.success && result.data) {
         setPrep(result.data)
         toast.success('Interview prep ready!')

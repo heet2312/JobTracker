@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { AIThinking } from '@/components/ai/ai-thinking'
 import { parseJobDescriptionAction } from '@/lib/actions/job.actions'
+import { useLocalApiKey } from '@/lib/hooks/use-api-key'
 import type { ParsedJob } from '@/types'
 
 interface PasteJDFormProps {
@@ -16,12 +17,13 @@ interface PasteJDFormProps {
 export function PasteJDForm({ onParsed }: PasteJDFormProps) {
   const [text, setText] = useState('')
   const [loading, setLoading] = useState(false)
+  const { getKey } = useLocalApiKey()
 
   async function handleSubmit() {
     if (!text.trim()) return
     setLoading(true)
     try {
-      const result = await parseJobDescriptionAction(text)
+      const result = await parseJobDescriptionAction(text, getKey() || undefined)
       if (result.success && result.data) {
         onParsed(result.data, text)
       } else {

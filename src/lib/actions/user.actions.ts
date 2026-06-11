@@ -6,6 +6,7 @@ import { connectDB } from '@/lib/db/connect'
 import { UserModel } from '@/lib/db/models/user.model'
 import { ProfileModel } from '@/lib/db/models/profile.model'
 import { SettingsModel } from '@/lib/db/models/settings.model'
+import { getUserAIClients } from '@/lib/ai/get-user-ai-client'
 import type { IUser, IProfile, ISettings, ActionResult } from '@/types'
 import type { Types } from 'mongoose'
 
@@ -173,6 +174,69 @@ export async function completeOnboardingAction(): Promise<ActionResult<void>> {
     return { success: true }
   } catch (error) {
     return { success: false, error: String(error) }
+  }
+}
+
+export interface ParsedLinkedInProfile {
+  headline: string
+  summary: string
+  skills: string[]
+  experienceLevel: IProfile['experienceLevel']
+  targetRoles: string[]
+  industries: string[]
+  linkedinUrl?: string
+}
+
+export async function parseLinkedInProfileAction(
+  profileText: string,
+  clientApiKey?: string
+): Promise<ActionResult<ParsedLinkedInProfile>> {
+  try {
+    const { userId: clerkId } = await auth()
+    if (!clerkId) return { success: false, error: 'Unauthorized' }
+    await connectDB()
+    const userId = await syncUser()
+    const { fast } = await getUserAIClients(userId, clientApiKey)
+
+    const prompt = `You are a professional resume parser. Parse the following LinkedIn profile text and extract structured information.
+
+Return a JSON object with exactly these fields:
+{
+  "headline": string (professional headline, e.g. "Senior Software Engineer at Google"),
+  "summary": string (professional summary/about section, max 500 chars),
+  "skills": string[] (technical and soft skills, max 30),
+  "experienceLevel": "intern" | "junior" | "mid" | "senior" | "staff" | "principal" | "executive",
+  "targetRoles": string[] (infer 2-4 job titles this person would target based on their background),
+  "industries": string[] (1-3 industries they work in),
+  "linkedinUrl": string | null (if a LinkedIn URL is present in the text)
+}
+
+Rules:
+- experienceLevel: infer from total years of experience and most recent titles
+- targetRoles: infer from their career trajectory (e.g. "Frontend Engineer", "React Developer")
+- If a field cannot be determined, use an empty string or empty array
+- skills: extract all mentioned technologies, languages, frameworks, tools, and soft skills
+- Return only valid JSON with no markdown, no explanations
+
+LinkedIn profile text:
+${profileText.slice(0, 8000)}`
+
+    const result = await fast.generateContent(prompt)
+    const raw = result.response.text()
+
+    let parsed: ParsedLinkedInProfile
+    try {
+      parsed = JSON.parse(raw) as ParsedLinkedInProfile
+    } catch {
+      return { success: false, error: 'AI returned invalid JSON. Try again or simplify the pasted text.' }
+    }
+
+    return { success: true, data: parsed }
+  } catch (error) {
+    const msg = String(error)
+    if (msg.includes('AI_KEY_REQUIRED')) return { success: false, error: 'No API key configured. Go to Settings → AI Provider.' }
+    if (msg.includes('AI_MODEL_REQUIRED')) return { success: false, error: 'No model selected. Go to Settings → AI Provider.' }
+    return { success: false, error: msg }
   }
 }
 

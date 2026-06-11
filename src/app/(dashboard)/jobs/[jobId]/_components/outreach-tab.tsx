@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AIThinking } from '@/components/ai/ai-thinking'
 import { CopyButton } from '@/components/shared/copy-button'
 import { generateOutreachAction } from '@/lib/actions/ai.actions'
+import { useLocalApiKey } from '@/lib/hooks/use-api-key'
 import type { IJob, IOutreachMessage } from '@/types'
 
 interface OutreachTabProps {
@@ -30,11 +31,12 @@ function genDate(date: Date | string) {
 export function OutreachTab({ job, existingMessages }: OutreachTabProps) {
   const [loading, setLoading] = useState(false)
   const [messages, setMessages] = useState<IOutreachMessage[]>(existingMessages)
+  const { getKey } = useLocalApiKey()
 
   async function handleGenerate() {
     setLoading(true)
     try {
-      const result = await generateOutreachAction(job._id)
+      const result = await generateOutreachAction(job._id, getKey() || undefined)
       if (result.success && result.data) {
         setMessages(result.data)
         toast.success('Outreach messages generated!')

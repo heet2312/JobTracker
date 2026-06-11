@@ -139,11 +139,24 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ---
 
-## Coming Soon
+## Email Notifications
 
-- Email delivery for follow-up reminders and weekly digest (preferences can be saved in Settings now)
-- Chrome extension for one-click job import
-- LinkedIn profile import
+Follow-up reminders and weekly digest emails are delivered via [Resend](https://resend.com). Configure `RESEND_API_KEY` and `EMAIL_FROM` in your environment, then toggle preferences in **Settings → Notifications**.
+
+- **Follow-up reminders** — sent daily at 9 AM UTC when a generated follow-up is due
+- **Weekly digest** — sent every Monday morning with your pipeline stats
+
+Cron schedules are defined in `vercel.json` and secured with `CRON_SECRET`.
+
+## Chrome Extension
+
+One-click job import from LinkedIn, Indeed, Glassdoor, Greenhouse, Lever, Workday, Ashby, and SmartRecruiters.
+
+See [`chrome-extension/README.md`](chrome-extension/README.md) for install instructions.
+
+## LinkedIn Profile Import
+
+Go to **Settings → Import from LinkedIn**, paste your profile text (Ctrl+A → Ctrl+C on your LinkedIn profile page), and AI will extract your headline, summary, skills, experience level, target roles, and industries — filling your profile in one click.
 
 ---
 

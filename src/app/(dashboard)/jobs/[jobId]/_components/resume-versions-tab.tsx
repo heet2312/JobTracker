@@ -11,6 +11,7 @@ import { AIThinking } from '@/components/ai/ai-thinking'
 import { CopyButton } from '@/components/shared/copy-button'
 import { generateOptimizedResume } from '@/lib/actions/ai.actions'
 import { useResumes } from '@/lib/hooks/use-resumes'
+import { useLocalApiKey } from '@/lib/hooks/use-api-key'
 import { usePDFDownload } from '@/lib/hooks/use-pdf-download'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { IJob, IResumeVersion } from '@/types'
@@ -86,6 +87,7 @@ function VersionCard({ version, jobTitle }: { version: IResumeVersion; jobTitle:
 
 export function ResumeVersionsTab({ job, existingVersions }: ResumeVersionsTabProps) {
   const { data: resumes } = useResumes()
+  const { getKey } = useLocalApiKey()
   const [selectedResumeId, setSelectedResumeId] = useState('')
   const [loading, setLoading] = useState(false)
   const [versions, setVersions] = useState<IResumeVersion[]>(existingVersions)
@@ -94,7 +96,7 @@ export function ResumeVersionsTab({ job, existingVersions }: ResumeVersionsTabPr
     if (!selectedResumeId) { toast.error('Select a resume'); return }
     setLoading(true)
     try {
-      const result = await generateOptimizedResume(job._id, selectedResumeId)
+      const result = await generateOptimizedResume(job._id, selectedResumeId, getKey() || undefined)
       if (result.success && result.data) {
         const newVersion: IResumeVersion = {
           _id: result.data._id,

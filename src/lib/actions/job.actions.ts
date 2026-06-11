@@ -136,6 +136,26 @@ export async function parseJobDescriptionAction(jd: string, clientApiKey?: strin
   }
 }
 
+export async function parsePDFJobAction(base64: string, clientApiKey?: string): Promise<ActionResult<ParsedJob>> {
+  try {
+    const { userId: clerkId } = await auth()
+    if (!clerkId) return { success: false, error: 'Unauthorized' }
+    await connectDB()
+    const userId = await syncUser()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const pdfParse = ((await import('pdf-parse')) as any).default ?? (await import('pdf-parse'))
+    const buffer = Buffer.from(base64, 'base64')
+    const pdfData = await pdfParse(buffer)
+    const text = pdfData.text?.trim()
+    if (!text || text.length < 50) return { success: false, error: 'Could not extract text from this PDF. Try copying the text and using the Paste JD tab instead.' }
+    const { fast } = await getUserAIClients(userId, clientApiKey)
+    const parsed = await parseJobDescription(text.slice(0, 20000), fast)
+    return { success: true, data: parsed }
+  } catch (error) {
+    return { success: false, error: aiError(error) }
+  }
+}
+
 export async function toggleFavoriteJob(jobId: string): Promise<ActionResult<IJob>> {
   try {
     const { userId: clerkId } = await auth()

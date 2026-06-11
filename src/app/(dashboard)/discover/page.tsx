@@ -18,6 +18,7 @@ import { AIThinking } from '@/components/ai/ai-thinking'
 import { MatchScoreRing } from '@/components/ai/match-score-ring'
 import { EmptyState } from '@/components/shared/empty-state'
 import { discoverJobsAction } from '@/lib/actions/ai.actions'
+import { useLocalApiKey } from '@/lib/hooks/use-api-key'
 import type { JobRecommendation } from '@/types'
 
 const schema = z.object({
@@ -33,6 +34,7 @@ type FormData = z.infer<typeof schema>
 export default function DiscoverPage() {
   const [loading, setLoading] = useState(false)
   const [results, setResults] = useState<JobRecommendation[]>([])
+  const { getKey } = useLocalApiKey()
 
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -49,7 +51,7 @@ export default function DiscoverPage() {
       remotePreference: data.remotePreference,
       experienceLevel: data.experienceLevel,
       industries: [],
-    })
+    }, getKey() || undefined)
     setLoading(false)
     if (result.success && result.data) {
       setResults(result.data)

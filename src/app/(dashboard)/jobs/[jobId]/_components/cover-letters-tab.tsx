@@ -13,6 +13,7 @@ import { AIThinking } from '@/components/ai/ai-thinking'
 import { CopyButton } from '@/components/shared/copy-button'
 import { generateCoverLetterAction } from '@/lib/actions/ai.actions'
 import { usePDFDownload } from '@/lib/hooks/use-pdf-download'
+import { useLocalApiKey } from '@/lib/hooks/use-api-key'
 import type { IJob, ICoverLetter, CoverLetterTone } from '@/types'
 
 interface CoverLettersTabProps {
@@ -87,11 +88,12 @@ export function CoverLettersTab({ job, existingLetters }: CoverLettersTabProps) 
   const [tone, setTone] = useState<CoverLetterTone>('professional')
   const [loading, setLoading] = useState(false)
   const [letters, setLetters] = useState<ICoverLetter[]>(existingLetters)
+  const { getKey } = useLocalApiKey()
 
   async function handleGenerate() {
     setLoading(true)
     try {
-      const result = await generateCoverLetterAction(job._id, tone)
+      const result = await generateCoverLetterAction(job._id, tone, getKey() || undefined)
       if (result.success && result.data) {
         setLetters((prev) => [result.data!, ...prev])
         toast.success('Cover letter generated!')

@@ -1,6 +1,7 @@
 import { getUserSettings } from '@/lib/actions/user.actions'
 import { SettingsClient } from './_components/settings-client'
 import { AIProviderClient } from './_components/ai-provider-client'
+import { LinkedInImportClient } from './_components/linkedin-import-client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { currentUser } from '@clerk/nextjs/server'
@@ -71,6 +72,9 @@ export default async function SettingsPage() {
         initialProvider={(settings?.aiProvider ?? 'gemini') as AIProvider}
         initialModel={settings?.aiModel ?? ''}
       />
+
+      {/* LinkedIn profile import */}
+      <LinkedInImportClient />
 
       {/* Notifications — client component handles interactivity */}
       <SettingsClient
