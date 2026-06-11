@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
-import { Compass, ExternalLink, Lock } from 'lucide-react'
+import { Compass, ExternalLink, Lock, Info } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -145,8 +145,15 @@ export default function DiscoverPage() {
 
       {results.length > 0 && (
         <div className="grid gap-4">
+          <div className="flex items-start gap-2 rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+            <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+            <span>
+              These are AI-generated search strategies, not verified live job postings.
+              Example companies are shown for reference only — use the Search button to find real current openings.
+            </span>
+          </div>
           <p className="text-xs text-muted-foreground uppercase tracking-widest">
-            {results.length} recommendations
+            {results.length} search targets
           </p>
           {results.map((rec, i) => (
             <Card key={i} className="hover:border-primary/40 transition-colors">
@@ -157,10 +164,15 @@ export default function DiscoverPage() {
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <p className="font-semibold">{rec.title}</p>
-                        <p className="text-sm text-muted-foreground">{rec.company} · {rec.location}</p>
+                        <p className="text-sm text-muted-foreground">{rec.exampleEmployerType} · {rec.location}</p>
+                        {rec.exampleCompanies?.length > 0 && (
+                          <p className="text-xs text-muted-foreground/70 mt-0.5">
+                            e.g. {rec.exampleCompanies.join(', ')}
+                          </p>
+                        )}
                       </div>
                       <Badge variant="outline" className="shrink-0 text-xs">
-                        {rec.estimatedSalary}
+                        {rec.estimatedSalaryRange}
                       </Badge>
                     </div>
                     <p className="text-sm mt-2 text-foreground/80">{rec.whyApply}</p>

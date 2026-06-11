@@ -18,9 +18,9 @@ export function buildFollowUpPrompt(
   return `You are an expert job search coach. Generate a follow-up message for a job application.
 
 Context: ${FOLLOWUP_CONTEXT[type]}
-${context ? `Additional context: ${context}` : ''}
+${context ? `Additional context: ${context}` : 'No additional context provided.'}
 
-Return a JSON object with exactly this structure:
+Return ONLY a raw JSON object (no markdown code fences, no commentary before or after) with exactly this structure:
 {
   "subject": string,
   "content": string,
@@ -34,7 +34,10 @@ Rules:
 - Reference the specific role and company
 - content should be ready to send as-is
 - bestSendTime: e.g. "Tuesday or Wednesday morning, 9-11am"
-- For post-interview: reference specific topics discussed
+- For "post-interview": if "Additional context" includes specific topics, names, or
+  questions discussed, reference 1-2 of them naturally. If no context is provided,
+  keep the thank-you general (e.g. "our conversation about the team's roadmap")
+  rather than inventing specific details.
 
 Job: ${jobTitle}
 Company: ${company}

@@ -4,12 +4,19 @@ export interface AIGenerationClient {
 
 export type AIProvider = 'gemini' | 'openai' | 'anthropic'
 
+const GEMINI_MODEL_ALIASES: Record<string, string> = {
+  'gemini-2.5-flash-preview-05-20': 'gemini-2.5-flash',
+  'gemini-2.5-pro-preview-05-06': 'gemini-2.5-pro',
+  'gemini-2.5-flash-preview-04-17': 'gemini-2.5-flash',
+}
+
 export async function createAIClient(
   provider: AIProvider,
   apiKey: string,
   model: string
 ): Promise<AIGenerationClient> {
   if (provider === 'gemini') {
+    model = GEMINI_MODEL_ALIASES[model] ?? model
     const { GoogleGenerativeAI } = await import('@google/generative-ai')
     const genAI = new GoogleGenerativeAI(apiKey)
     return genAI.getGenerativeModel({

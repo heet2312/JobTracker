@@ -17,12 +17,12 @@ export const AI_PROVIDERS: {
     label: 'Google Gemini',
     models: [
       {
-        value: 'gemini-2.5-flash-preview-05-20',
+        value: 'gemini-2.5-flash',
         label: 'Gemini 2.5 Flash',
         description: 'Fast, efficient — best for most tasks',
       },
       {
-        value: 'gemini-2.5-pro-preview-05-06',
+        value: 'gemini-2.5-pro',
         label: 'Gemini 2.5 Pro',
         description: 'Highest quality analysis',
       },

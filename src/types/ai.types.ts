@@ -153,15 +153,17 @@ export interface IFollowUp {
 
 export interface JobRecommendation {
   title: string
-  company: string
+  exampleEmployerType: string
+  exampleCompanies: string[]
   location: string
-  estimatedSalary: string
+  estimatedSalaryRange: string
   matchScore: number
   matchReason: string
   missingSkills: string[]
   priorityScore: number
   whyApply: string
   searchQuery: string
+  isLiveListing: false
 }
 
 export interface UserPreferences {
